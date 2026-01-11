@@ -1,0 +1,95 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+\usepackage[rebuttal]{cvpr}
+
+% Include other packages here, before hyperref.
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+
+% Import additional packages in the preamble file, before hyperref
+\input{preamble}
+
+% If you comment hyperref and then uncomment it, you should delete
+% egpaper.aux before re-running latex.  (Or just hit 'q' on the first latex
+% run, let it finish, and you should be clear).
+\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
+\usepackage[pagebackref,breaklinks,colorlinks,citecolor=cvprblue]{hyperref}
+
+\newcommand{\first}{\textcolor{magenta}{QD13}}
+\newcommand{\second}{\textcolor{orange}{por2}}
+\newcommand{\third}{\textcolor{blue}{JmWr}}
+
+% Support for easy cross-referencing
+\usepackage[capitalize]{cleveref}
+\crefname{section}{Sec.}{Secs.}
+\Crefname{section}{Section}{Sections}
+\Crefname{table}{Table}{Tables}
+\crefname{table}{Tab.}{Tabs.}
+
+% If you wish to avoid re-using figure, table, and equation numbers from
+% the main paper, please uncomment the following and change the numbers
+% appropriately.
+%\setcounter{figure}{2}
+%\setcounter{table}{1}
+%\setcounter{equation}{2}
+
+% If you wish to avoid re-using reference numbers from the main paper,
+% please uncomment the following and change the counter for `enumiv' to
+% the number of references you have in the main paper (here, 6).
+%\let\oldthebibliography=\thebibliography
+%\let\oldendthebibliography=\endthebibliography
+%\renewenvironment{thebibliography}[1]{%
+%     \oldthebibliography{#1}%
+%     \setcounter{enumiv}{6}%
+%}{\oldendthebibliography}
+
+
+%%%%%%%%% PAPER ID  - PLEASE UPDATE
+\def\paperID{12662} % *** Enter the Paper ID here
+\def\confName{ICCV}
+\def\confYear{2025}
+
+\begin{document}
+
+%%%%%%%%% TITLE - PLEASE UPDATE
+% \title{\LaTeX\ Guidelines for Author Response}  % **** Enter the paper title here
+We sincerely thank all reviewers for their thoughtful feedback and encouraging comments; we also apologize for the missing bibliography in our initial submission, which will be fixed for the revised version together with all the typos and additional references which the reviewers kindly pointed out.
+
+We are very grateful for the positive reviews from all reviewers, which confirms our belief that advancing research progress in this niche has significant value to the community.
+% We are particularly grateful for the widespread recognition that EVER, as an exact and physically accurate volume renderer, carves out an important niche. 
+%We agree with Reviewer \second{} that we should have been more upfront and confident in presenting this specific positioning and the direct performance comparisons. Achieving this level of accuracy involved a deliberate trade-off in raw speed compared to approximate methods like 3DGS, and we should have been confident enough to present this position, as EVER still maintains real-time performance suitable for interactive visualization.
+
+
+\textbf{Performance, Memory and Primitive Count(\second{}):}
+\second{} rightly identifies that the performance drop is caused by ray tracing, and could potentially be alleviated by moving our dual-intersection tracking to a rasterization framework. As for the memory and primitive count, any difference between ours and the original 3DGS directly ties to the densification changes in our method. Otherwise the memory usage per a primitive is the same as 3DGS. We will include a discussion of this in the revised paper. We agree that including explicit performance numbers and storage/memory costs will strengthen the paper. We will include these in the main comparison table of the the revised version.
+
+% \textbf{Memory and Primitive Count (\second{}):}
+% We agree that this is an important thing to mention, as the memory and primitive count directly tie into improved densification of our method due to geometry consistency. Otherwise the memory usage per a primitive is the same as 3DGS. We will include a discussion of this in the revised paper.
+
+\textbf{Ray jittering and inverse contraction (\third):}
+We will include descriptions of both these techniques in the method section of the paper: We jitter our rays by picking a point within the pixel from a uniform random distribution, as opposed to using the center of the pixel. This helps reconstruct thin structures better. The inverse contraction sampling is described in the supplemental material, which reduces the reliance on the SfM reconstruction. 
+
+\textbf{Densification (\third{}):}
+Our method does indeed use projected 2D positions for densification. We will be more explicit about this, and describe more clearly how we compute the 2D viewspace gradients of our primitives. We believe that the reason for the improved densification is mainly due to the 3D consistency of our rendering, rather than any of the minor changes made to accommodate our ellipsoid primitives. (the inverse contraction mainly improves the visual appearance, not metrics)
+
+\textbf{Path Tracing RBFs (\first):}
+Great point, we will discuss the suggested references\cite{knoll2021path} and similar other recent approaches in prior work.
+
+\textbf{Figure 2 Rotation (\third):}
+The top down view shows the middle row of the EPI. The red primitive then appears to move left, read middle down, which is consistent with counter clockwise motion. We will improve this figure to improve readability.
+
+%%%%%%%%% REFERENCES
+{
+    \small
+    \bibliographystyle{ieeenat_fullname}
+    \bibliography{main}
+}
+
+% \maketitle
+% \thispagestyle{empty}
+\appendix
+
+
+
+\end{document}

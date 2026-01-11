@@ -1,0 +1,74 @@
+
+\section{Experiments}
+
+We evaluate our method using two synthetic datasets: the \emph{Blender} dataset from NeRF~\cite{mildenhall2021nerf}, and the \emph{Shiny Blender} dataset from Ref-NeRF~\cite{verbin2021ref}. Both datasets contain objects rendered against a white background; the \emph{Shiny Blender} dataset focuses on shiny materials with high-frequency reflections whereas the \emph{Blender} dataset contains a mixture of specular, glossy, and Lambertian materials. 
+
+We evaluate standard metrics PSNR, SSIM \cite{wang2004image}, and LPIPS \cite{zhang2018unreasonable} on the novel view synthesis task for each dataset. To quantify the quality of our reconstructed geometry, we also evaluate the Mean Angular Error (MAE$^\circ$) of the normal vectors. MAE$^\circ$ is evaluated over the same test set of novel views; for each view we take the dot product between the ground truth and predicted normals, multiply the $\arccos$ of this angle by the ground truth opacity of the pixel, and take the mean over all pixels. This gives us an error of $90^\circ$ if the predicted normals are missing (\ie if the pixel is mistakenly predicted as transparent). We summarize these quantitative metrics in Table~\ref{tab:combined}, with per-scene results in Appendix~\ref{appendix:results}.
+%the supplement.
+
+We provide qualitative comparisons of our reconstructed environment maps with prior inverse rendering approaches in Figures~\ref{fig:car} and~\ref{fig:helmet}, and additional results in Appendix~\ref{appendix:results}. We also demonstrate two applications of our scene decomposition in Figure~\ref{fig:environment swap}. For Figure~\ref{fig:environment swap} (a), we render the geometry and spatially varying BRDF recovered from the \emph{materials} scene with the environment map optimized from the \emph{helmet} scene, showing convincing new reflections while retaining the original object shape and material properties. For Figure~\ref{fig:environment swap} (b), we take this a step further by training the \emph{toaster} and \emph{car} scenes with the same neural material decoder, which enabled us to compose the two scenes under the environment map recovered from the \emph{toaster} scene.
+
+To quantitatively measure the quality of our method's disentanglement, we evaluate it similarly to NeRFactor~\cite{zhang2021nerfactor}. Since our method is specifically designed to handle more specular objects, we modify the Shiny Blender dataset from Ref-NeRF~\cite{verbin2021ref} by rendering the images in HDR under both the original lighting and an unseen lighting condition. We then optimize each method on each of the scenes with original lighting, then render the estimated geometry and materials using the unseen lighting condition. For computing quality metrics, we find the (ambiguous) per-channel scaling factor by minimizing the mean squared error. The scaled image is then evaluated against the ground truth relit image using PSNR, SSIM, and LPIPS. 
+
+The results are presented in Table~\ref{tab:relighting}, showing that our method is able to relight shiny objects with significantly increased accuracy when compared to state of the art inverse rendering methods such as NVDiffRec and NVDiffRecMC.%, both of which are state of the art methods for inverse rendering.
+
+\plotenvswap{}
+
+Table~\ref{tab:combined} also shows quantitative ablation studies on our model. If we do not use integral images for the far field illumination (``no integral image''), the sparse gradient on the environment map prevents the model from learning to use it to explain reflections.
+Using the derivative of the linear interpolation of the density instead of smoothed numerical derivatives (``analytical grad''), results in more holes in the geometry, limiting performance.
+If we do not utilize multiple ray bounces for interreflections (``single bounce''), all metrics are slightly worse, with most of the errors arising in regions with strong interreflections.
+Finally, replacing the neural network with the identity function (``no neural''), results in slightly worse performance, especially in regions with strong interreflections.
+
+
+% and significantly impacts performance. 
+%Starting the TensoRF field at the final resolution (``no upsample'') rather than gradually upsampling, has a similar but even more pronounced effect.
+
+%We recomputed the $\text{MAE}^\circ$ for Ref-NeRF and PhySG to ensure that the comparison is fair. 
+
+\plotsceneshort{car} 
+
+\plotscene{helmet} 
+
+
+\begin{table*}[]
+\centering
+\resizebox{0.8\linewidth}{!}{
+\input{tables/combined_metrics}
+}\\
+\small{$^1$ requires object masks during training. ~~ $^2$ view synthesis method, not inverse rendering. ~~Red is best, followed by orange, then yellow. }
+\caption{\textbf{Results on the \emph{Blender} dataset from NeRF \cite{mildenhall2021nerf}. and \emph{Shiny Blender} dataset from Ref-NeRF \cite{verbin2021ref}.} We compute PSNR, SSIM, and LPIPS on the novel view synthesis task, and MAE$^\circ$ on the normals. Our method outperforms all prior methods except Ref-NeRF on view synthesis, and produces the most accurate geometric normals.}
+\label{tab:combined}
+\end{table*}
+
+\begin{table}[t]
+\resizebox{\linewidth}{!}{
+\input{tables/relighting}
+}
+\small{$^1$ requires object masks during training. ~~Red is best, followed by orange, then yellow. }
+\caption{\textbf{Relighting on the \emph{Shiny Blender} dataset from Ref-NeRF~[35].} %We compute PSNR, SSIM, and LPIPS on the novel view synthesis task for new lighting conditions. Our method outperforms all prior methods.
+}
+\label{tab:relighting}
+\end{table}
+
+
+
+% \plotscene{ball} 
+% See \cref{fig:ball} for the ball scene.
+
+% \plotsceneshort{car} 
+% See \cref{fig:car} for the car scene.
+
+% \plotscene{helmet} 
+% See \cref{fig:helmet} for the helmet scene.
+
+% \plotsceneshort{teapot} 
+% See \cref{fig:teapot} for the teapot scene.
+
+% \plotscene{toaster} 
+% See \cref{fig:toaster} for the toaster scene.
+
+% \plotsceneshort{materials} 
+% See \cref{fig:materials} for the materials scene.
+
+
+

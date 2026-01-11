@@ -1,0 +1,134 @@
+% CVPR 2024 Paper Template; see https://github.com/cvpr-org/author-kit
+
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+%%%%%%%%% PAPER TYPE  - PLEASE UPDATE FOR FINAL VERSION
+\usepackage{cvpr}              % To produce the CAMERA-READY version
+% \usepackage[review]{cvpr}      % To produce the REVIEW version
+% \usepackage[pagenumbers]{cvpr} % To force page numbers, e.g. for an arXiv version
+% Import additional packages in the preamble file, before hyperref
+\input{preamble}
+\input{sec/zoom}
+
+% It is strongly recommended to use hyperref, especially for the review version.
+% hyperref with option pagebackref eases the reviewers' job.
+% Please disable hyperref *only* if you encounter grave issues, 
+% e.g. with the file validation for the camera-ready version.
+%
+% If you comment hyperref and then uncomment it, you should delete *.aux before re-running LaTeX.
+% (Or just hit 'q' on the first LaTeX run, let it finish, and you should be clear).
+\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
+\usepackage[pagebackref,breaklinks,colorlinks,citecolor=cvprblue]{hyperref}
+
+%%%%%%%%% PAPER ID  - PLEASE UPDATE
+\def\paperID{12662} % *** Enter the Paper ID here
+\def\confName{ICCV}
+\def\confYear{2025}
+
+%%%%%%%%% TITLE - PLEASE UPDATE
+\title{\acronym{}: \longname{} for Real-time View Synthesis}
+
+\newcommand{\authorbox}[2]{\makebox[0pt][l]{#1$^#2$}\phantom{George Kopanas}}
+\newcommand{\aemail}[1]{\makebox[0pt][l]{{\tt\small #1}}\phantom{{\tt\small dfutschik@google.com}}}
+
+\newcommand{\institutes}[0]{$^1$University of California, San Diego \quad $^2$Google \quad $^*$work done while at Google}
+
+%%%%%%%%% AUTHORS - PLEASE UPDATE
+\author{
+\authorbox{Alexander Mai$^1$}{*}\\
+% University of California, San Diego\\
+% {\tt\small amai@ucsd.edu}
+\aemail{amai@ucsd.edu}
+\and
+\authorbox{Peter Hedman}{2}\\
+% Google\\
+\aemail{hedman@google.com}
+\and
+\authorbox{George Kopanas}{2}\\
+% Google\\
+\aemail{gkopanas@google.com}
+\and
+\authorbox{Dor Verbin}{2}\\
+% Google\\
+\aemail{dorverbin@google.com}
+\and
+\authorbox{David Futschik}{2}\\
+% Google\\
+\aemail{dfutschik@google.com}
+\and
+\authorbox{Qiangeng Xu}{2}\\
+% Google\\
+\aemail{qiangenx@google.com}
+\and
+\authorbox{Falko Kuester}{3}\\
+% University of California, San Diego\\
+\aemail{fkuester@ucsd.edu}
+\and
+\authorbox{Jonathan T. Barron}{2}\\
+% Google\\
+\aemail{barron@google.com}
+\and
+\authorbox{Yinda Zhang}{2}\\
+% Google\\
+\aemail{yindaz@google.com}
+}
+
+\begin{document}
+
+\twocolumn[{%
+\renewcommand\twocolumn[1][]{#1}%
+\maketitle
+\begin{center}
+    \centering
+%     \begin{tabular}{c@{}c@{}c@{}c@{}c@{}}
+% 3DGS & StopThePop & Ours & Ground Truth \\
+% \graphimseven{images/comparison_table/3DGS_im7.png} &
+% % \graphimseven{images/comparison_table/mcmc_im7.png} &
+% \graphimseven{images/comparison_table/stop_im7.png} &
+% \graphimseven{images/comparison_table/ours_im7.png} &
+% \graphimseven{images/comparison_table/gt_im7.png} \\
+%     \end{tabular}
+    \includegraphics[width=\textwidth]{figures/Frontpage-Splinetracing2.pdf}
+
+\captionof{figure}{An overview of the quality benefits of our EVER technique. 
+Left: On the Zip-NeRF dataset, our model produces the sharpest results ever. 
+Middle: Our method is able to blend primitive colors together to reproduce light and shadow better than other 3DGS-based methods.
+Right: The way our approach blends colors is physically accurate over any number of primitives, matching the ground truth computed via quadrature.
+%Middle: Because our method correctly blends primitive colors according to the physics of volume rendering, it produces fewer ``foggy'' artifacts than splatting. 
+%Right: Our method correctly blends primitive colors, which is not possible using a splatting regardless of how primitives are sorted (globally or ray-wise).
+}
+\label{fig:frontpage}
+% Top left: Monastery~\cite{Calidos2023} scene, which requires efficient use of primitives. Top right: "bicycle" scene rendered at 30 FPS. Bottom left: simulated focal length using raytracing. Bottom right: Scene reconstructed from fisheye images.}
+\end{center}
+}]
+
+
+
+
+\input{sec/0_abstract}    
+\input{sec/1_intro}
+\input{sec/2_relatedworks}
+\input{sec/3_method}
+\input{sec/4_results}
+
+\iftoggle{cvprfinal}{
+\myparagraph{Acknowledgements}
+We would like to thank Delio Vicini, Stephan Garbin and Ben Lee for helpful discussions.
+AM is funded in part by the USACE Engineer Research and Development Center Cooperative Agreement W9132T-22-2-0014.
+}{}
+
+
+{
+    \small
+    \bibliographystyle{ieeenat_fullname}
+    \bibliography{main}
+}
+
+% WARNING: do not forget to delete the supplementary pages from your submission 
+\iftoggle{cvprfinal}{
+\appendix
+\input{sec/X_suppl}
+}{}
+\appendix
+
+\end{document}

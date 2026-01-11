@@ -1,0 +1,209 @@
+
+\newcommand{\plotall}[1]{%
+  \adjincludegraphics[trim={{0\width} {0\height} {0\width} {0\height}}, clip, height=0.22\linewidth]{#1}%
+}
+
+% \newcommand{\plotscene}[1]{
+% \begin{figure*}[h]
+% \centering
+% \plotall{nvdiffrec/#1/final.png}
+% \plotall{nvdiffrec/#1/normals.png}
+% \plotall{nvdiffrec/#1/mapped_pano.png} \\
+% \plotall{nvdiffrecmc/#1/final.png}
+% \plotall{nvdiffrecmc/#1/normals.png}
+% \plotall{nvdiffrecmc/#1/mapped_pano.png} \\
+% \plotall{images/#1/final.png}
+% \plotall{images/#1/normals.png}
+% \plotall{images/#1/mapped_pano.png} \\
+% \plotall{images/#1/gt_final.png}
+% \plotall{images/#1/gt_normals.png}
+% \plotall{images/#1/gt_pano.png}
+% \caption{\MakeUppercase#1 scene. Top row shows our results; bottom row shows ground truth. First column shows a rendered novel view, second column shows normals, and third column shows environment map.}
+% \label{fig:#1}
+% \end{figure*}
+% }
+
+% This version does one method per row, so it takes more space
+% \newcommand{\plotscene}[1]{
+% \begin{figure*}[h]
+% \begin{tabular}{cccc}
+% \rotatebox{90}{~~~~~~~~~~~~NVDiffRec} & \plotall{nvdiffrec/#1/final.png}
+% & \plotall{nvdiffrec/#1/normals.png}
+% & \plotall{nvdiffrec/#1/mapped_pano.png} \\
+% \rotatebox{90}{~~~~~~~~~NVDiffRecMC} & \plotall{nvdiffrecmc/#1/final.png}
+% & \plotall{nvdiffrecmc/#1/normals.png}
+% & \plotall{nvdiffrecmc/#1/mapped_pano.png} \\
+% \rotatebox{90}{~~~~~~~~~~~~~~~~~~Ours} & \plotall{images/#1/final.png}
+% & \plotall{images/#1/normals.png}
+% & \plotall{images/#1/mapped_pano.png} \\
+% \rotatebox{90}{~~~~~~~~~~~Ground Truth} & \plotall{images/#1/gt_final.png}
+% & \plotall{images/#1/gt_normals.png}
+% & \plotall{images/#1/gt_pano.png} \\
+% & Novel View & Normals & Environment Map
+% \end{tabular}
+% \caption{\textbf{Results on the \emph{#1} scene}, compared to NVDiffRec \cite{munkberg2021nvdiffrec} and NVDiffRecMC \cite{hasselgren2022nvdiffrecmc}.}
+% \label{fig:#1}
+% \end{figure*}
+% }
+
+\newcommand{\plotfourtrim}[1]{%
+  \adjincludegraphics[trim={{0\width} {0.02\height} {0\width} {0.02\height}}, clip, width=0.24\linewidth]{#1}%
+}
+\newcommand{\plotfour}[1]{%
+  \adjincludegraphics[trim={{0\width} {0.0\height} {0\width} {0.0\height}}, clip, width=0.24\linewidth]{#1}%
+}
+% This version does one method per column so it uses less space
+\newcommand{\plotscene}[1]{
+\begin{figure*}[h]
+\begin{tabular}{l@{~~}c@{}c@{}c@{}c@{}}
+\rotatebox{90}{~~~~~~~~~~~Novel View} & \plotfourtrim{images/#1/gt_final.png} & \plotfourtrim{images/#1/final.png} & \plotfourtrim{nvdiffrec/#1/final.png} & \plotfourtrim{nvdiffrecmc/#1/final.png} \\
+\rotatebox{90}{~~~~~~~~~~~~~~Normals} & \plotfourtrim{images/#1/gt_normals.png} & \plotfourtrim{images/#1/normals.png} & \plotfourtrim{nvdiffrec/#1/normals.png} & \plotfourtrim{nvdiffrecmc/#1/normals.png} \\
+\rotatebox{90}{Environment} & \plotfour{images/#1/gt_pano.png} & \plotfour{images/#1/mapped_pano.png} & \plotfour{nvdiffrec/#1/mapped_pano.png} & \plotfour{nvdiffrecmc/#1/mapped_pano.png} \\
+& Ground Truth & Ours & NVDiffRec & NVDiffRecMC
+\end{tabular}
+\caption{\textbf{Results on the \emph{#1} scene}, compared to NVDiffRec \cite{munkberg2021nvdiffrec} and NVDiffRecMC \cite{hasselgren2022nvdiffrecmc}.}
+\label{fig:#1}
+\end{figure*}
+}
+
+
+\newcommand{\plotfourtrimtop}[1]{%
+  \adjincludegraphics[trim={{0\width} {0.05\height} {0\width} {0.2\height}}, clip, width=0.24\linewidth]{#1}%
+}
+
+% This version does one method per column so it uses less space
+\newcommand{\plotship}[1]{
+\begin{figure*}[h]
+\begin{tabular}{l@{~~}c@{}c@{}c@{}c@{}}
+\rotatebox{90}{~~~~~~~~~~~Novel View} & \plotfourtrimtop{images/#1/gt_final.png} & \plotfourtrimtop{images/#1/final.png} & \plotfourtrimtop{nvdiffrec/#1/final.png} & \plotfourtrimtop{nvdiffrecmc/#1/final.png} \\
+\rotatebox{90}{~~~~~~~~~~~~~~Normals} & \plotfourtrimtop{images/#1/gt_normals.png} & \plotfourtrimtop{images/#1/normals.png} & \plotfourtrimtop{nvdiffrec/#1/normals.png} & \plotfourtrimtop{nvdiffrecmc/#1/normals.png} \\
+\rotatebox{90}{Environment} & \plotfour{images/#1/gt_pano.png} & \plotfour{images/#1/mapped_pano.png} & \plotfour{nvdiffrec/#1/mapped_pano.png} & \plotfour{nvdiffrecmc/#1/mapped_pano.png} \\
+& Ground Truth & Ours & NVDiffRec & NVDiffRecMC
+\end{tabular}
+\caption{\textbf{Results on the \emph{#1} scene}, compared to NVDiffRec \cite{munkberg2021nvdiffrec} and NVDiffRecMC \cite{hasselgren2022nvdiffrecmc}. Since our method, NVDiffRec, and NVDiffRecMC do not model refraction, they are not able to handle the water well.}
+\label{fig:#1}
+\end{figure*}
+}
+
+% This is for the scenes that are short and wide, to save more vertical space
+\newcommand{\plotfourtrimmore}[1]{%
+  \adjincludegraphics[trim={{0\width} {0.2\height} {0\width} {0.3\height}}, clip, width=0.24\linewidth]{#1}%
+}
+\newcommand{\plotsceneshort}[1]{
+\begin{figure*}[h]
+\begin{tabular}{l@{~~}c@{}c@{}c@{}c@{}}
+\rotatebox{90}{~~~~Novel View} & \plotfourtrimmore{images/#1/gt_final.png} & \plotfourtrimmore{images/#1/final.png} & \plotfourtrimmore{nvdiffrec/#1/final.png} & \plotfourtrimmore{nvdiffrecmc/#1/final.png} \\
+\rotatebox{90}{~~~~~Normals} & \plotfourtrimmore{images/#1/gt_normals.png} & \plotfourtrimmore{images/#1/normals.png} & \plotfourtrimmore{nvdiffrec/#1/normals.png} & \plotfourtrimmore{nvdiffrecmc/#1/normals.png} \\
+\rotatebox{90}{Environment} & \plotfour{images/#1/gt_pano.png} & \plotfour{images/#1/mapped_pano.png} & \plotfour{nvdiffrec/#1/mapped_pano.png} & \plotfour{nvdiffrecmc/#1/mapped_pano.png} \\
+& Ground Truth & Ours & NVDiffRec & NVDiffRecMC
+\end{tabular}
+\caption{\textbf{Results on the \emph{#1} scene}, compared to NVDiffRec \cite{munkberg2021nvdiffrec} and NVDiffRecMC \cite{hasselgren2022nvdiffrecmc}.}
+\label{fig:#1}
+\end{figure*}
+}
+
+\newcommand{\plotscenebottom}[1]{
+\begin{figure*}[h]
+\begin{tabular}{l@{~~}c@{}c@{}c@{}c@{}}
+\rotatebox{90}{~~~~Novel View} & \plotfourtrimtop{images/#1/gt_final.png} & \plotfourtrimtop{images/#1/final.png} & \plotfourtrimtop{nvdiffrec/#1/final.png} & \plotfourtrimtop{nvdiffrecmc/#1/final.png} \\
+\rotatebox{90}{~~~~~Normals} & \plotfourtrimtop{images/#1/gt_normals.png} & \plotfourtrimtop{images/#1/normals.png} & \plotfourtrimtop{nvdiffrec/#1/normals.png} & \plotfourtrimtop{nvdiffrecmc/#1/normals.png} \\
+\rotatebox{90}{Environment} & \plotfour{images/#1/gt_pano.png} & \plotfour{images/#1/mapped_pano.png} & \plotfour{nvdiffrec/#1/mapped_pano.png} & \plotfour{nvdiffrecmc/#1/mapped_pano.png} \\
+& Ground Truth & Ours & NVDiffRec & NVDiffRecMC
+\end{tabular}
+\caption{\textbf{Results on the \emph{#1} scene}, compared to NVDiffRec \cite{munkberg2021nvdiffrec} and NVDiffRecMC \cite{hasselgren2022nvdiffrecmc}.}
+\label{fig:#1}
+\end{figure*}
+}
+
+\newcommand{\plotfourtrimbottom}[1]{%
+  \adjincludegraphics[trim={{0\width} {0.2\height} {0\width} {0.05\height}}, clip, width=0.24\linewidth]{#1}%
+}
+\newcommand{\plotscenetop}[1]{
+\begin{figure*}[h]
+\begin{tabular}{l@{~~}c@{}c@{}c@{}c@{}}
+\rotatebox{90}{~~~~Novel View} & \plotfourtrimbottom{images/#1/gt_final.png} & \plotfourtrimbottom{images/#1/final.png} & \plotfourtrimbottom{nvdiffrec/#1/final.png} & \plotfourtrimbottom{nvdiffrecmc/#1/final.png} \\
+\rotatebox{90}{~~~~~Normals} & \plotfourtrimbottom{images/#1/gt_normals.png} & \plotfourtrimbottom{images/#1/normals.png} & \plotfourtrimbottom{nvdiffrec/#1/normals.png} & \plotfourtrimbottom{nvdiffrecmc/#1/normals.png} \\
+\rotatebox{90}{Environment} & \plotfour{images/#1/gt_pano.png} & \plotfour{images/#1/mapped_pano.png} & \plotfour{nvdiffrec/#1/mapped_pano.png} & \plotfour{nvdiffrecmc/#1/mapped_pano.png} \\
+& Ground Truth & Ours & NVDiffRec & NVDiffRecMC
+\end{tabular}
+\caption{\textbf{Results on the \emph{#1} scene}, compared to NVDiffRec \cite{munkberg2021nvdiffrec} and NVDiffRecMC \cite{hasselgren2022nvdiffrecmc}.}
+\label{fig:#1}
+\end{figure*}
+}
+
+
+
+
+\newcommand{\plottraining}[1]{
+\begin{figure*}[h]
+\centering
+\begin{tabular}{c@{~}c@{~}c@{~}c}
+\plotfour{#1_overtime/im100.png}
+& \plotfour{#1_overtime/im500.png}
+& \plotfour{#1_overtime/im900.png}
+& \plotfour{#1_overtime/im30k.png} \\
+\plotfour{#1_overtime/pano100.png}
+& \plotfour{#1_overtime/pano500.png}
+& \plotfour{#1_overtime/pano900.png}
+& \plotfour{#1_overtime/pano30k.png} \\
+100 steps & 500 steps & 900 steps & 30000 steps
+\end{tabular}
+\caption{\textbf{Snapshots of the \emph{#1} scene during optimization.} Early in training the object geometry is cloudy and the environment map is uniform, but as training proceeds the object develops a sharp surface and the environment map converges.}
+\label{fig:#1 over time}
+\end{figure*}
+}
+
+\newcommand{\plotlefttrim}[1]{%
+  \adjincludegraphics[trim={{0\width} {0.06\height} {0\width} {0.06\height}}, clip, width=0.8\textwidth]{#1}%
+}
+\newcommand{\plotleft}[1]{%
+  \adjincludegraphics[trim={{0\width} {0.0\height} {0\width} {0.0\height}}, clip, width=0.8\textwidth]{#1}%
+}
+\newcommand{\plotrighttrim}[1]{%
+  \adjincludegraphics[trim={{0.03\width} {0.05\height} {0\width} {0.138\height}}, clip, width=\textwidth]{#1}%
+}
+\newcommand{\plotenvswap}{
+\begin{figure}[h]
+% \begin{table}[h]
+\centering
+\begin{minipage}{0.39\linewidth}
+\centering
+\begin{tabular}{c@{~}c@{}}
+\plotlefttrim{images/combined/tint.png} & \rotatebox{90}{~~~~~~~~~~$\downarrow$} \\
+\emph{Materials} \bsdf{} & \\
+\plotleft{images/helmet/mapped_pano.png} & \rotatebox{90}{~~~~~~$\downarrow$} \\
+\emph{Helmet} Lighting \\
+\end{tabular}
+\end{minipage} 
+%
+\begin{minipage}{0.59\linewidth}
+\centering
+\begin{tabular}{c@{}}
+\plotrighttrim{images/combined/im000.png} \\
+Combined Rendering (a)
+\end{tabular}
+\end{minipage}
+% \end{table}
+\includegraphics[width=\linewidth]{images/car_toaster.png}
+Combined Rendering (b)
+
+\caption{\textbf{Rendering with different illumination.} (a) shows the geometry and \bsdf{} (shown integrated against uniform white lighting) recovered from the \emph{materials} scene, rendered with the environment map recovered from the \emph{helmet} scene. (b) shows the geometry and \bsdf{} recovered from the \emph{toaster} and \emph{car} scene composed under the environment map recovered from the \emph{toaster} scene.}
+\label{fig:environment swap}
+\end{figure}
+}
+% \newcommand{\plotenvswap}{
+% \begin{figure}[h]
+% \centering
+% \begin{tabular}{c@{}c@{}}
+% \begin{tabular}{c@{}c@{}}
+% \plotlefttrim{images/combined/tint.png} & \rotatebox{90}{~~~~~~~~~~$\downarrow$} \\
+% \emph{Materials} \bsdf{} & \\
+% \plotleft{images/helmet/mapped_pano.png} & \rotatebox{90}{~~~~~~$\downarrow$} 
+% \end{tabular}
+% & \plotrighttrim{images/combined/im000.png} \\
+% \emph{Helmet} Lighting & Combined Rendering
+% \end{tabular}
+% \caption{\textbf{Rendering with different illumination.} Here we show the geometry and materials optimized from the \emph{materials} scene, rendered with the environment map optimized from the \emph{helmet} scene.}
+% \label{fig:environment swap}
+% \end{figure}
+% }

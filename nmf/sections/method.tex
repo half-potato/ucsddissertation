@@ -1,0 +1,271 @@
+% \begin{figure*}[ht]
+%     \centering
+%     \includegraphics[width=\textwidth]{Illuminerfi-Fig2-V2-tall.pdf}
+%     \caption{\textbf{We model the BRDF at each double sided micro surface as a convex combination of a diffuse lobe (top) and a specular lobe (bottom).} For the diffuse lobe, we (1a) integrate the radiance from the environment map against the cosine lobe of the normal vector $\uvn$ to get an irradiance map, then (1b) multiply this value by the albedo $\rho(\point)$ to get $L_d$. For the specular lobe, we start by (2a) sampling incoming light directions $\omegan$ according to the normal $\uvn$, view direction $\omegao$, and material roughness $\alpha$, then (2b) query the environment map and take a weighted mean with the neural BRDF term $h$ to get $L_s$. Finally, we (3) take a convex combination between these diffuse and specular components as the outgoing light $L_o$ at the sample point $\point$.}
+%     \label{fig:methoddiagram}
+% \end{figure*}
+
+\begin{figure*}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{Figure2.pdf}
+    \caption{To render the color of a ray cast through the scene, we (a) evaluate density at each sample and compute each sample's volume rendering quadrature weight $w_i$, then (b) query the material properties and surface normal (flipped if it does not face the camera) at each sample point, which are used to (c) compute the color of each sample by using Monte Carlo integration of the surface rendering integral, where the number of samples used is proportional to the quadrature weight $w_i$. This sample color is then accumulated along the ray using the quadrature weight to get the final ray color.
+    %\textbf{We model the BRDF at each double sided micro surface as a convex combination of a diffuse lobe (top) and a specular lobe (bottom).} For the diffuse lobe, we (1a) integrate the radiance from the environment map against the cosine lobe of the normal vector $\uvn$ to get an irradiance map, then (1b) multiply this value by the albedo $\rho(\point)$ to get $L_d$. For the specular lobe, we start by (2a) sampling incoming light directions $\omegan$ according to the normal $\uvn$, view direction $\omegao$, and material roughness $\alpha$, then (2b) query the environment map and take a weighted mean with the neural BRDF term $h$ to get $L_s$. Finally, we (3) take a convex combination between these diffuse and specular components as the outgoing light $L_o$ at the sample point $\point$.
+    }
+    \label{fig:methoddiagram}
+\end{figure*}
+
+\section{Method} \label{sec:method}
+
+% In this paper, w
+We present \modelname{} to tackle the problem of inverse rendering by combining volume and surface rendering, as shown in Figure~\ref{fig:methoddiagram}. Our method takes as input a collection of images ($100$ in our experiments) with known cameras, and outputs the volumetric density and normals, materials (\bsdf{}s), and far-field illumination (environment map) of the scene. We assume that all light sources are infinitely far away from the scene, though light may interact locally with multiple bounces through the scene.
+
+\looseness=-1
+In this section, we describe our representation of a scene and the rendering pipeline we use to map this representation into pixel values. 
+Section~\ref{sec:main idea} introduces the main idea of our method, to build intuition before diving into the details. 
+Section~\ref{section:geometry} describes our representation of the scene geometry, including density and normal vectors. Section~\ref{section:BRDF} describes our representation of materials and how they reflect light via the \bsdf{}.
+Section~\ref{section:illumination} introduces our parameterization of illumination, which is based on a far-field environment map equipped with an efficient integrator for faster evaluations of the rendering integral. Finally, Section~\ref{section:rendering} describes the way we combine these different components to render pixel values in the scene.
+%Section~\ref{section:optimization} describes the various ways we optimize this method to make the computation tractable.
+
+
+\subsection{Main Idea} \label{sec:main idea}
+
+The key to our method is a novel combination of the volume rendering and surface rendering paradigms: we model a density field as in volume rendering, and we model outgoing radiance at every point in space using surface-based light transport (approximated using Monte Carlo ray sampling).
+%ray sampling as in surface rendering.
+Volume rendering with a density field lends itself well to optimization: initializing geometry as a semi-transparent cloud creates useful gradients (see Figure~\ref{fig:toaster over time}), and allows for changes in geometry and topology. Using surface-based rendering allows modeling the interaction of light and materials, and enables recovering these materials.
+
+We combine these paradigms by modeling a \emph{microfacet field}, in which each point in space is endowed with a volume density and a local micro-surface. Light accumulates along rays according to the volume rendering integral of Equation~\ref{eqn:volrendering2}, but the outgoing light of each 3D point is determined by surface rendering as in Equation~\ref{eqn:rendering}, using rays sampled according to its local micro-surface. 
+This combination of volume-based and surface-based representation and rendering, shown in Figure~\ref{fig:methoddiagram}, enables us to optimize through a severely underconstrained inverse problem, recovering geometry, materials, and illumination simultaneously. 
+
+\subsection{Geometry Parameterization} \label{section:geometry}
+
+We represent geometry using a low-rank tensor data structure based on TensoRF~\cite{tensorf}, with small modifications described in 
+% our supplement.
+Appendix~\ref{appendix:optimization}. 
+Our model stores both density $\density$ and a spatially-varying feature that is decoded into the material's \bsdf{} at every point in space. We initialize our model at low resolution and gradually upsample it during optimization (see Appendix~\ref{appendix:optimization} for details).
+
+Similar to prior work~\cite{srinivasan2021nerv,verbin2021ref}, we use the negative normalized gradient of the density field as a field of ``volumetric normals.''
+However, like~\cite{kuang2022neroic}, we found that numerically computing spatial gradients of the density field using finite differences rather than using analytic gradients leads to normal vectors that we can use directly, without using features predicted by a separate MLP. Additionally, these numerical gradients can be efficiently computed using 2D and 1D convolution using TensorRF's low-rank density decomposition (see Appendix~\ref{appendix:optimization}). These accurate normals are then used for rendering the appearance at a volumetric microfacet, as will be discussed in Sections~\ref{section:BRDF} and~\ref{section:rendering}. 
+
+%The normalized gradient of the density field, or normal, is used in place of the surface normal to orient the phase function and give the volume surface like properties. 
+%associated with position $\mathbf{x}$, $\hat{\mathbf{n}}(\mathbf{x})$, can be computed using the density field:
+%\begin{equation}
+%    \hat{\mathbf{n}}(\mathbf{x}) = \frac{\nabla \density(\mathbf{x})}{\|\nabla \density(\mathbf{x})\|_2}.
+%\end{equation}
+
+
+% Similar to Ref-NeRF~\cite{verbin2021ref}, we find that also outputting normals from our model significantly improves the performance of our system. 
+Our volumetric normals are regularized using the orientation loss $\mathcal{R}_o$ introduced by Ref-NeRF~\cite{verbin2021ref}:
+\begin{equation}
+    \label{eqn:normal_penalty}
+    \mathcal{R}_o = \sum_j w_j \max(0, -\uvn(\point_j) \cdot \omegao)^2,
+    % + \max(0, \uvn' \cdot V)^2) \\
+    % \mathcal{R}_p &= \sum_i w_i \|\uvn-\uvn'\|^2
+\end{equation}
+where $\omegao$ is the view direction facing towards the camera, and $\uvn(\point_j)$ is the normal vector at the $j$th point along the ray. The orientation loss $\mathcal{R}_o$ penalizes normals that face away from the camera yet contribute to the color of the ray (as quantified by weights $w_j$).
+
+Because our volumetric normals are derived from the density field, this regularizer has a direct effect on the reconstructed geometry: it decreases the weight of backwards-facing normals by decreasing their density or increasing the density between them and the cameras, thereby promoting hard surfaces and improving reconstruction. 
+Note that unlike Ref-NeRF, we do not use ``predicted normals'' for surface rendering, as our Gaussian-smoothed derivative filter achieves similar effect.
+%we do not find it necessary to use ``predicted normals'' on top of the normals derived from our density field.
+
+
+%\plottraining{toaster}
+\begin{figure*}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{Illuminerfi-Fig3.pdf}
+    \caption{\textbf{Snapshots of the toaster scene during optimization.} The second row shows a cross section of the weights along each ray taken along the dotted line. Early in training the object geometry is cloudy and the environment map is uniform, but as training proceeds the object develops a sharp surface and the environment map converges.}
+    \label{fig:toaster over time}
+\end{figure*}
+
+
+\subsection{Material Representation}  \label{section:BRDF}
+
+We write our spatially varying \bsdf{} model $f$ %breaks light down into diffuse and specular lobes blended together using Schlick's approximation of the Fresnel term $F_r(\hb)$.
+as a combination of diffuse and specular components:
+\begin{align}
+    % F_r(\hb) &= F_0(\point) + (1-F_0(\point))(1-\hb\cdot \omegao)^5 \\
+    %f(\point, \omegao, \omegai) &= \nonumber \\
+    %F_r(\hb) f_s&(\point, \omegao, \omegai) + (1-F_r(\hb)) \frac{\rho(\point)}{\pi}
+    f(\omegao, \omegai) =
+    \frac{\rho}{\pi}(1-F_r(\hb)) + F_r(\hb) f_s&(\omegao, \omegai),
+\end{align}
+where $\rho$ is the RGB albedo,
+%at point $\point$, 
+$\hb=\frac{\omegao+\omegai}{\|\omegao+\omegai\|}$ is the half vector,
+$F_r(\hb)$ is the Fresnel term, $f_s(\omegao, \omegai)$ is the specular component of the \bsdf{}
+%at point $\point$,
+for outgoing view direction $\omegao$ and incident light direction $\omegai$. The spatial dependence of these terms on the point $\point$ is omitted for brevity. We use the Schlick approximation~\cite{schlick1994inexpensive} for the Fresnel term:
+\begin{equation}
+    \label{eqn:fresnel}
+    F_r(\hb) = F_0(\point) + (1-F_0(\point))(1-\hb\cdot \omegao)^5,
+\end{equation}
+where $F_0(\point) \in [0, 1]^3$ is the spatially varying reflectance at the normal incidence at the point $\point$, and we base our specular \bsdf{} on the Cook-Torrance \bsdf~\cite{torrance1967theory}, using:
+\begin{equation}
+    \label{eqn:brdf}
+    f_s(\omegao, \omegai) = \frac{D(\hb ; \alpha, \uvn, \omegao)G_1(\omegao, \hb)g(\omegai, \omegao)}{4\left(\uvn\cdot\omegao\right)\left(\uvn\cdot\omegai\right)
+    },
+\end{equation}
+where $D$ is a Trowbridge-Reitz distribution~\cite{trowbridge1975average} (popularized by the GGX \bsdf{} model~\cite{walter2007microfacet}), $G_1$ is the Smith shadow masking function for the Trowbridge-Reitz distribution, and $g$ is a shallow multilayer perceptron (MLP) with a sigmoid nonlinearity at its output. 
+The distribution $D$ models the roughness $\alpha$ of the material, 
+%and provides an upper bound on the value of the \bsdf{} (which
+and it is used for importance sampling, as described in Section~\ref{section:rendering}). The MLP $g$ captures other material properties not included in its explicit components.%, like the geometry shadowing term~\cite{heitz2015sggx}.
+
+The parameters for each of the diffuse and specular \bsdf{} components are stored as features $\feat$ in the TensoRF representation (alongside density $\density$), allowing them to vary in space. We compute the roughness $\alpha$, albedo $\rho$ and reflectance at the normal incidence $F_0$ by applying a single linear layer with sigmoid activation to the spatially-localized features $\feat$. %, rather than the point coordinates $\point$ themselves.
+Details about the architecture of the MLP $g$ and its input encoding can be found in Appendix~\ref{appendix:parameterization}.
+
+We can approximately evaluate the rendering equation integral in Equation~\ref{eqn:rendering} more efficiently by assuming all microfacets at a point $\point$ have the same irradiance $E(\point)$:
+\begin{align}
+    % &E(\point) = \int_{\mathbb{S}^2} L_i(\point, \omegai) (\uvn(\point)\cdot\omegai)^+ d\omegai \\
+    \int_{\mathbb{S}^2} &f(\point, \omegao, \omegai)L_i(\point, \omegai) (\uvn(\point)\cdot\omegai)^+ d\omegai  \\
+    \label{eqn:approx_render}
+    \approx \int_{\mathbb{S}^2} &F_r(\hb)f_s(\point, \omegao, \omegai)L_i(\point, \omegai) (\uvn(\point)\cdot\omegai)^+ d\omegai  \nonumber \\
+    & + \frac{\rho(\point)}{\pi}E(\point) \int_{\mathbb{S}^2}(1-F_r(\hb))d\omegai .
+\end{align}
+The irradiance $E(\point)$, defined as:
+\begin{equation}
+    E(\point) = \int_{\mathbb{S}^2} L_i(\point, \omegai) (\uvn(\point)\cdot\omegai)^+ d\omegai ,
+\end{equation}
+can then be easily evaluated using an irradiance environment map approximated by low-degree spherical harmonics, as done by Ramamoorthi and Hanrahan~\cite{ramamoorthi2001efficient}. At every optimization step, we obtain the current irradiance environment map by integrating the environment map with spherical harmonic functions up to degree $2$, and combining the result with the coefficients of a clamped cosine lobe pointing in direction $\uvn(\point)$ to obtain the irradiance $E(\point)$~\cite{ramamoorthi2001efficient}.
+Equation~\ref{eqn:approx_render} can then be importance sampled according to $D$ and integrated using Monte Carlo sampling of incoming light. 
+
+We sample half vectors $\hb$ from the distribution of visible normals $D_{\omegao}$~\cite{heitz2018sampling}, which is defined as:
+\begin{equation} \label{eqn:visible}
+    D_{\omegao}(\hb) = \frac{G_1(\omegao, \hb)|\omegao\cdot\hb|D(\hb)}{|\omegao\cdot\uvn|} .
+\end{equation}
+However, to perform Monte Carlo integration of the rendering equation, we need to convert from half vector space to the space of incoming light, which requires multiplying by the determinant of the Jacobian of the reflection equation $\omegai = 2(\omegao\cdot \hb) \hb - \omegao$, which is $4 (\omegao\cdot\hb)$~\cite{walter2007microfacet}. Multiplying by the $\omegai\cdot\uvn$ 
+term from Equation~\ref{eqn:rendering} as well as the Jacobian and Equation~\ref{eqn:visible} results in the following Monte Carlo estimate:
+\begin{align}
+    \label{eqn:montecarlo}
+    L(\point, \omegao) \approx 
+    \frac 1{N}\sum_{n=1}^{N} &F_r(\hat{\mathbf{h}}^n)g(\feat, \omegao, \omegan)L_i(\point, \omegan)\nonumber  \\
+    & + (1-F_r(\hat{\mathbf{h}}^n)) \frac{\rho(\point)}{\pi}E(\point), \\
+    \text{where }\hat{\mathbf{h}}^n \sim &D_{\omegao}(\,\,\cdot\,\,; \alpha(\point), \uvn(\point), \omegao), \nonumber \\
+    \text{and }\omegan = &2(\omegao\cdot \hat{\mathbf{h}}^n) \hat{\mathbf{h}}^n - \omegao. \nonumber
+\end{align}
+
+% Our spatially varying \bsdf{} model $f$, is parameterized as a combination of a diffuse component and a neural microfacet specular component: 
+% \begin{equation} \label{eqn:interpolate_f}
+%     f(\point, \omegao, \omegai) = (1-\lambda(\point))\frac{1}{\pi}\rho(\point) + \lambda(\point) f_s(\point, \omegao, \omegai),
+% \end{equation}
+% where $\rho(\point)$ is the RGB albedo at point $\point$ and $f_s(\point, \omegao, \omegai)$ is the specular component of the \bsdf{} at point $\point$, for incident light direction $\omegai$ and outgoing view direction $\omegao$. Finally, $\lambda(\point) \in [0,1]$ interpolates between diffuse and specular materials in an energy preserving manner. 
+
+% Our goal is to evaluate the rendering integral in Equation~\ref{eqn:rendering}. By linearity of integration, we can compute the diffuse contribution, $L_d$, and specular contribution, $L_s$, separately:
+% \begin{align}
+%     \label{eqn:interpolate_Lo}
+%     L_o &= (1-\lambda(\point)) L_d + \lambda(\point) L_s, \\
+%     \label{eqn:Ld}
+%     L_d &= \rho(\point)\int_{\mathbb{S}^2} \frac{1}{\pi}L_i(\point, \omegai) (\uvn(\point)\cdot\omegai)^+ d\omegai, \\
+%     \label{eqn:Ls}
+%     L_s &= \int_{\mathbb{S}^2} f_s(\point, \omegao, \omegai)L_i(\point, \omegai) (\uvn(\point)\cdot\omegai)^+ d\omegai.
+% \end{align}
+
+% The diffuse component $L_d$ can be easily evaluated using an irradiance environment map approximated by low-degree spherical harmonics, as done by Ramamoorthi and Hanrahan~\cite{ramamoorthi2001efficient}. At every optimization step, we obtain the current irradiance environment map by integrating the environment map with spherical harmonic functions up to degree $2$, and combining the result with the coefficients of a clamped cosine lobe computed in~\cite{ramamoorthi2001efficient}.
+
+% To evaluate $L_d$ for the sample points in the batch, we simply evaluate the spherical harmonics in the normal direction $\uvn(\point)$ and multiply channelwise by the RGB albedo, following Equation~\ref{eqn:Ld}.
+
+% The specular component of the \bsdf{} is parameterized as a product of two components:
+% \begin{equation}
+%     % f_s(\point, \omegao, \omegai) = D(\alpha(\feat), \uvn(\point), \omegao)g(\feat, \omegai, \omegao),
+%      f_s(\point, \omegao, \omegai) = \frac{D(\omegai ; \alpha(\point), \uvn(\point), \omegao)h(\point, \omegai, \omegao)}{\left(\uvn(\point)\cdot\omegai\right)^+}
+% \end{equation}
+% where $D$ is a Trowbridge-Reitz distribution~\cite{trowbridge1975average} (popularized by the GGX \bsdf{} model~\cite{walter2007microfacet}) and $h$ is a shallow multilayer perceptron (MLP) with a sigmoid nonlinearity at its output. 
+% The distribution $D$ models the roughness $\alpha$ of the material, and provides an upper bound on the value of the \bsdf{} (which we also use for importance sampling, see Section~\ref{section:rendering}). The MLP $h$ captures other material properties, like the Fresnel effect.
+
+% The parameters for each of the diffuse and specular \bsdf{} components are stored as features $\feat$ in the TensoRF representation (alongside density $\density$), allowing them to vary in space. We compute the roughness $\alpha$, albedo $\rho$, and weighting parameter $\lambda$ by applying a single linear layer with sigmoid activation to the spatially-localized features $\feat$, rather than the point coordinates $\point$ themselves. Details about the architecture of the MLP $h$ and its input encoding may be found in Appendix~\ref{appendix:parameterization}.
+
+\subsection{Illumination} \label{section:illumination}
+
+We model far field illumination using an environment map, represented using an equirectangular image with dimensions $H\times W\times 3$, with $H=512$ and $W=1024$.
+% The raw values are stored in an $H\times W\times 3$ matrix of weights. 
+%We achieve high dynamic range by applying an exponential function to the values before any downstream processing.
+\looseness=-1
+We map the optimizable parameters in our environment map parameterization into high dynamic range RGB values by applying an elementwise exponential function.
+
+We use the term \emph{primary} to denote a ray originating at the camera, and \emph{secondary} to denote a ray bounced from a surface to evaluate its reflected light (whether that light arrives directly from the environment map, or from another scene point).
+
+To minimize sampling noise, instead of using a single environment map element per secondary ray, we use the mean value over an axis-aligned rectangle in spherical coordinates, with the solid angle covered by the rectangle adjusted to match the sampling distribution $D$ at that point.  Concretely, to query the environment map at a given incident light direction, we first compute its corresponding spherical coordinates $(\theta, \phi)$, where $\theta$ and $\phi$ are the polar and azimuthal angles respectively. We then compute the mean value of the environment map over a (spherical) rectangle centered at $(\theta, \phi)$, whose size $\Delta\theta\times\Delta\phi$ we constrain to have aspect ratio $\frac{\Delta\theta}{\Delta\phi} = \sin\theta$. To choose the solid angle of the rectangle, $\Delta\theta\cdot\Delta\phi$, we modify the method from~\cite{colbert2007gpu}, which is based on Nyquist's sampling theorem (see Appendix~\ref{appendix:nyquist}). 
+We compute these mean values efficiently using integral images, also known as summed-area tables~\cite{crow1984summed}. 
+
+
+
+
+
+%There is also the matter of handling diffuse materials. Diffuse materials require more samples than shinier objects, but if we upper bound the diffuse color by the far field illumination it receives, we can compute the diffuse color very quickly using spherical harmonics~\cite{ramamoorthi2001efficient}. For every batch of rays, we integrate  samples from the environment map with spherical harmonics of degree 2, multiply by coefficients to multiply by the cosine term, then evaluate the spherical harmonics in the direction of the normal and multiply by the albedo to get the diffuse lighting. To ensure that our material conserves light, we linearly interpolate between the diffuse lighting and the specular lighting using the diffuse lighting brightness. 
+
+
+
+% See \cref{fig:toaster over time} for the toaster scene during training.
+
+\subsection{Rendering} \label{section:rendering}
+
+\looseness=-1
+In this section, we describe how the model components representing geometry (Section~\ref{section:geometry}), materials (Section~\ref{section:BRDF}), and illumination (Section~\ref{section:illumination}) are combined to render the color of a pixel. 
+For each primary ray, we choose a set of sample points following the rejection-sampling strategy of~\cite{li2022nerfacc, ingp} to prioritize points near object surfaces. We query our geometry representation~\cite{tensorf} for the density $\sigma_j$ at each point, and use Equation~\ref{eqn:volrenderingquadrature} to estimate the contribution weight $w_j$ of each point to the final ray color.
+%, where $\delta_i$ denotes the ray distance between adjacent samples:
+% \begin{equation}
+% w_i = \exp\left(-\sum_{j=0}^{i-1}\sigma_j\delta_j \right)\left(1-\exp(-\sigma_i\delta_i)\right)
+% \end{equation}
+
+% To compute the color for each of these points, we evaluate the spatially varying
+% %feature $\feat_j$ and decode it into the
+% albedo $\rho_j$, roughness $\alpha_j$, and reflect $\lambda_j$ (see Equation~\ref{eqn:interpolate_f}), as well as the normal vector $\uvn_j$.
+% %each using a single linear layer and sigmoid activation.
+% Using the albedo value, we evaluate the diffuse component $L_d$ as described in Section~\ref{section:BRDF}. We now describe how the specular component $L_s$ is estimated via Monte Carlo sampling.
+
+To compute the color for each of these points, we compute the irradiance from the environment map and apply Equation~\ref{eqn:montecarlo} to obtain $L(\point_j, \omegao)$, as described in Section~\ref{section:BRDF}.
+
+For each primary ray sample with weight $w_j$, we allocate $N=\floor*{w_j M}$ secondary rays, where $M=128$ is an upper bound on the total number of secondary rays for each primary ray (since $\sum_j w_j \leq 1$). The secondary rays are sampled according to the Trowbridge-Reitz distribution
+%(the $D$ term of the specular \bsdf{} component),
+using the normal vector $\uvn(\point_j)$ and roughness value $\alpha_j$ at the current sample.
+
+
+% evaluate the spatially varying
+% %feature $\feat_j$ and decode it into the
+% albedo $\rho_j$, roughness $\alpha_j$, and reflect $\lambda_j$ (see Equation~\ref{eqn:interpolate_f}), as well as the normal vector $\uvn_j$.
+% %each using a single linear layer and sigmoid activation.
+% Using the albedo value, we evaluate the diffuse component $L_d$ as described in Section~\ref{section:BRDF}. We now describe how the specular component $L_s$ is estimated via Monte Carlo sampling.
+
+
+% For each primary ray sample with weight $w_j$, we allocate $N=\floor*{w_j M}$ secondary rays for approximating specular appearance using the specular \bsdf{} component $f_s$. The secondary rays are sampled according to the Trowbridge-Reitz distribution (the $D$ term of the specular \bsdf{} component), using the normal vector $\uvn(\point_j)$ and roughness value $\alpha_j$ at the current sample,
+% %, we draw $w_i M$ secondary rays from the \bsdf{} according to the Trowbridge-Reitz distribution~\cite{walter2007microfacet, heitz2018sampling}, 
+% where $M=128$ is an upper bound on the total number of secondary rays for each primary ray (since $\sum_j w_j \leq 1$).
+% %which is modified during optimization, as described later in this section.
+% We pass these secondary rays, along with the spatially varying feature $\feat_j$, to the MLP component $h$ of the \bsdf{} to retrieve an RGB multiplier $h(\feat_j, \omegai, \omegao)$ for each incoming light value. 
+
+%The contribution of each secondary ray to the final pixel color is then the product of $w_j$ and $h(\feat_j, \omegai, \omegao)$.
+%We sort these secondary rays, add a small amount of randomness, and then select the $R$ secondary rays with the largest contributions to actually trace through the scene. 
+When computing the incoming light $L_i(\point, \omegan)$, we save memory by randomly selecting a fixed number $R$ of secondary rays to interreflect through the scene while others index straight into the environment map.
+%In order to limit the number of interreflecting rays, we must decide which secondary rays will be bounced again (up to $2$ bounces through the scene). 
+We importance sample these $R$ secondary rays according to the largest channel of the weighted RGB multiplier $w_j\cdot g(\feat_j, \omegai, \omegao)$. In practice, we find that adding a small amount of random noise to the weighted RGB multiplier before choosing the $R$ largest values improves performance by slightly increasing the variation of the selected rays. 
+%We also allow each ray to bounce at most two times through the scene. 
+
+The remaining $N-R$ secondary rays with lower contribution are rendered more cheaply by evaluating the environment map directly rather than considering further interactions with the scene, as described in Section~\ref{section:illumination}.
+%However, if a primary ray sample is allocated more than two secondary rays through the scene, any additional ``cheap'' secondary rays for that sample are culled rather than evaluated, mimicking Russian Roulette.
+
+%For each primary sample $j$, we can now estimate its specular light component $L_s(\point_j, \omegao)$ using Equation~\ref{eqn:montecarlo}.
+This combined sample color value $L(\point_j, \omegao)$ is then weighted by $w_j$, and the resulting colors are summed along the primary ray samples to produce pixel values.
+Finally, the resulting pixel values are tonemapped to sRGB color and clipped to $[0, 1]$.
+
+\paragraph{Dynamic batching.}
+We apply the dynamic batch size strategy from NeRFAcc~\cite{li2022nerfacc} to the TensoRF~\cite{tensorf} sampler, which controls the number of samples per batch using the number of primary rays per batch. Since the number of secondary rays scales with the number of primary rays, we bound the maximal number of primary rays to avoid casting too many secondary rays. We use the same method to control $R$, the number of secondary bounces that retrace through the scene. During test time, we shuffle the image to match the training distribution, then unshuffle the image to get the result.
+
+%As the scene optimizes and surfaces become opaque, more of the samples along each primary ray can be culled because they either have density zero or are occluded by regions of high density. As the scene's sparsity increases, we increase the number of primary rays per batch to keep the number of primary samples roughly constant throughout optimization. 
+% In other words, during optimization we shift from batches of fewer primary rays with more samples per ray to batches of more primary rays with fewer and more targeted samples per ray. 
+%However, we do not allow the number of primary rays per batch to exceed a maximum threshold, no matter how sparse the scene becomes.
+
+%We use a similar adaptive batching strategy for secondary rays. For each primary ray, we allow up to $M$ secondary rays to be traced through the scene.
+% (the allocation of these $M$ secondary rays is described in Section~\ref{section:rendering}). 
+%We set $M$ inversely proportional to the batch size for primary rays, resulting in a roughly constant allocation of secondary rays to each primary ray sample (on average, we use two secondary rays per sample). However, once geometry becomes sufficiently sparse, our primary ray batch size hits its maximum allowed value. From this point onwards, the number of secondary rays $M$ per primary ray remains constant, even as the scene continues to sparsify and surfaces become sharp. This allows the number of secondary rays per sample to increase, reducing the noise in our estimated reflections as our surface quality improves. We follow a similar strategy to adaptively allocate tertiary rays, which likewise play a larger role later in optimization.
+
+
+%In addition to far field illumination from the environment map, we also consider near field illumination by modeling ray bounces within the scene. 
+%Each camera ray is cast through the scene and may bounce off zero, one, or two ``surfaces'' before exiting the scene and encountering the environment map. We control the number of secondary bounces using the same method used to control primary rays to manage memory constraints. During test time, we shuffle the image to match the training distribution, then unshuffle to image to get the result.
+
+%Early in optimization, while surfaces are not yet formed, we approximate ray colors with a heavier reliance on the environment map; as surfaces solidify we devote greater computational budget towards simulating ray bounces for interreflections. 
+
+%See Section~\ref{section:optimization} for greater detail on this computational strategy. By combining near and far field illumination in this way, we can approximately sample the incoming light $L(\point, \omegai)$ at the point $\point$ from direction $\omegai$.
+
+
+
+We train using photometric loss and the normal penalty loss of Equation~\ref{eqn:normal_penalty}. 
+Further details of our optimization and sampling methods can be found in Appendix~\ref{appendix:optimization}.
+% the supplement.

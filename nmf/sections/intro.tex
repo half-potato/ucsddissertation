@@ -1,0 +1,43 @@
+\section{Introduction}
+
+%Given a set of images of a scene and their respective camera poses we wish to estimate the 
+
+Simultaneous recovery of the light sources illuminating a scene and the materials and geometry of objects inside it, given a collection of images, is a fundamental problem in computer vision and graphics. This decomposition enables editing and downstream usage of a scene: rendering it from novel viewpoints, and arbitrarily changing the scene's illumination, geometry, and material properties. This disentanglement is especially useful for creating 3D assets that can be inserted into other environments and realistically rendered under novel lighting conditions. 
+%Disentangling these three highly coupled components---geometry, materials, and lighting---is necessary to generate reusable, relightable 3D assets, as well as to mix real and synthetic environments and objects.
+%We achieve this decomposition by combining physics-based rendering with several recent advances in computer vision. 
+
+%render images of the scene under novel viewpoints, lighting conditions, and with new materials. 
+
+%We build our model upon recent advances in differential volumetric rendering, within which we add differentiable volumetric scattering using a surface-like phase function and Monte Carlo integration. By re-adding the volumetric scattering term to the radiative transfer equation, we are able to decompose the view dependent appearance of points in the scene into the material properties and the lighting. 
+
+%Given calibrated images of a scene, our goal is to recover accurate surface geometry, material properties, and environment map. 
+
+
+%Recent advances in volumetric rendering have been successful in decomposing the geometry of a scene from its appearance. However, while volumetric methods recover accurate geometry, they do not allow manipulating materials or illumination. We build our model upon these volumetric rendering methods, and use insights from differentiable surface rendering using path tracing for efficient rendering. This hybrid volume-surface representations allows 
+
+
+%Many recent methods for novel view synthesis make use of \emph{volumetric rendering}, in which space is allowed to be foggy rather than forced either empty or solid. Although in the end most scenes do converge to solid objects surrounded by empty space, volumetric rendering makes for much easier optimization. This is in contrast to signed distance functions (SDFs), which model a surface directly; a surprising consequence of our work is that high-fidelity \emph{surfaces} can be recovered by modeling \emph{density}.
+
+Recent methods for novel view synthesis based on neural radiance fields~\cite{mildenhall2021nerf} have been highly successful at decomposing scenes into their geometry and appearance components, enabling rendering from new, unobserved viewpoints.
+%Recent advances in volumetric rendering have been successful in synthesizing novel views of a scene. 
+However, the geometry and appearance recovered are often of limited use in manipulating either materials or illumination, since they model each point as a direction-dependent emitter rather than as reflecting the incident illumination.
+To tackle the task of further decomposing appearance into illumination and materials, we return to a physical model of light-material interaction, which models a surface as a distribution of microfacets that \emph{reflect} light rather than emitting it. By explicitly modeling this interaction during optimization, our method can recover both material properties and the scene's illumination.
+
+
+
+
+
+
+\looseness=-1
+Our method uses a Monte Carlo rendering approach with a hybrid surface-volume representation, where the scene is parameterized as a 3D field of microfacets: the scene's geometry is represented as a volume density, but its materials are parameterized using a spatially varying Bidirectional Reflectance Distribution Function (BRDF). 
+The volumetric representation of geometry has been shown to be effective for optimization~\cite{mildenhall2021nerf,yariv2021volume}, and treating each point in space as a microfaceted surface allows us to use ideas stemming from decades of prior work on material parameterization and efficient surface-based rendering. 
+% When our method is applied to opaque objects, w
+Despite its volumetric parameterization, we verify experimentally that our model shrinks into a surface around opaque objects, with all contributions to the color of a ray coming from the vicinity of its intersection with the object.
+
+
+
+
+To summarize, our method (1) combines aspects of volume-based and surface-based rendering for effective optimization, enabling reconstructing high-fidelity scene geometry, materials, and lighting from a set of calibrated images; (2) uses an optimizable microfacet material model rendered using Monte Carlo integration with multi-bounce raytracing, allowing for realistic interreflections on nonconvex objects; and (3) is efficient: it optimizes a scene from scratch in $\sim$3 hours on a single NVIDIA GTX 3090.
+
+
+

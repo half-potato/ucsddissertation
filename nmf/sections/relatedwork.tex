@@ -1,0 +1,30 @@
+
+\section{Related work}
+
+Our work lies in the rich field of inverse rendering, in which the goal is to reconstruct the geometry, material properties, and illumination that gave rise to a set of observed images. This task is a severely underconstrained inverse problem, with challenges ranging from lack of differentiability~\cite{tzumao} to the computational cost-variance tradeoff of the forward rendering process~\cite{hasselgren2022nvdiffrecmc}.
+
+
+
+Recent progress in inverse rendering, and in particular in view synthesis, has been driven by modeling scenes as radiance fields \cite{mildenhall2021nerf, mipnerf, mipnerf360}, which can produce photorealistic models of a scene based on calibrated images.
+
+% \paragraph{Radiance fields.}
+% Radiance fields such as NeRF \cite{mildenhall2021nerf, mipnerf, mipnerf360} are capable of producing photorealistic models of a scene based on calibrated photographs. Recent research has yielded dramatic improvements in optimization time \cite{plenoxels, ingp, tensorf}, recovery of dynamic scenes \cite{neuralvolumes, dynerf, dnerf, tensor4d, mixvoxels, v4d, nerfplayer, hypernerf, hexplane, kplane}, and recovery of in-the-wild scenes with variable appearance \cite{nerfw, boss2021nerd, boss2021neural, samurai, blocknerf, kplane}. Three lines of work are most relevant to ours: (1) modeling higher-fidelity reflections, (2) disentangling illumination and material properties, and (3) improving model interpretability.
+
+\paragraph{Inverse rendering.}
+%Inverse rendering is the task of recovering some combination of geometry, lighting, and materials necessary to render a scene from images of that scene. 
+Inverse rendering techniques can be categorized based on the combination of unknowns recovered and assumptions made. 
+Common assumptions include far field illumination, isotropic BRDFs, and no interreflections or self-occlusions. Early work by Ramamoorthi and Hanrahan~\cite{ramamoorthi2001signal} handled unknown lighting, texture, and BRDF by using spherical harmonic representations of both BRDF and lighting, which allowed recovering materials and low frequency lighting components. More recent methods used differentiable rendering of known geometry, first through differentiable rasterization~\cite{loper2014opendr, Liu_2019_ICCV, chen2019learning} and later through differentiable ray tracing~\cite{tzumao, azinovic2019inverse, park2020seeing}. Later methods built on differentiable ray tracing, making use of Signed Distance Fields (SDFs) to also reconstruct geometry~\cite{zhang2021physg, munkberg2021nvdiffrec, hasselgren2022nvdiffrecmc}. 
+
+Following the success of NeRF~\cite{mildenhall2021nerf}, volumetric rendering has emerged as a useful tool for inverse rendering.
+% inverse rendering methods that rely on volumetric rendering, often to obtain geometry, have emerged. 
+Some methods based on volume rendering assume known lighting and only recover geometry and materials~\cite{srinivasan2021nerv, bi2020neural, asthana2022neural}, while others solve for both lighting and materials, but assume known geometry~\cite{lyu2022neural, zhang2021nerfactor} or geometry without self-occlusions~\cite{boss2021neural, boss2021nerd}. Some methods simultaneously recover illumination, geometry, and materials, but assume that illumination comes from a single point light source~\cite{guo2020object,iron-2022}. However, to the best of our knowledge none of these existing volumetric inverse rendering methods are able to capture high frequency lighting (and appearance of specular objects) from just the input images themselves. 
+
+An additional challenge is in handling multi-bounce illumination, or interreflections, in which light from a source bounces off multiple objects before reaching the camera. In this case, computational tradeoffs are unavoidable due to the exponential growth of rays with the number of such bounces. Park \etal~\cite{park2020seeing} model interreflections assuming known geometry, but do not model materials, which is equivalent to treating all objects as perfect mirrors. Other methods use neural networks to cache visibility fields~\cite{srinivasan2021nerv, zhang2021nerfactor} or radiance transfer fields~\cite{lyu2022neural, guo2020object}. Our method handles interreflections by casting additional rays through the scene, using efficient Monte Carlo sampling.
+%Similar to NVDiffRecMC~\cite{hasselgren2022nvdiffrecmc}, our model computes it directly by tracing ray bounces, but with a volumutric scene representation rather than an SDF.
+
+
+\paragraph{Volumetric view synthesis.}
+We base our representation of geometry on recent advances in volumetric view synthesis, following NeRF~\cite{mildenhall2021nerf}. Specifically, we retain the idea of using differentiable volumetric rendering to model geometry, using a voxel-based representation of the underlying density field~\cite{plenoxels, ingp, tensorf}.%, which enable our smooth estimation of normal vectors via 3D convolution. 
+
+Of particular relevance to our work are prior methods such as~\cite{verbin2021ref,ge2023refneus} that are specifically designed for high-fidelity appearance of glossy objects. In general, most radiance field models fail at rendering high-frequency appearance caused by reflections from shiny materials under natural illumination, instead rendering blurry appearance~\cite{zhang2020nerf++}. To enable our method to handle these highly specular materials, and to improve the normal vectors estimated by our method, which are key to the rendered appearance, we utilize regularizers from Ref-NeRF~\cite{verbin2021ref}.
+

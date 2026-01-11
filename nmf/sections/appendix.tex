@@ -1,0 +1,141 @@
+\appendix
+\section{Rectangle Size Derivation} \label{appendix:nyquist}
+
+As mentioned in Section~\ref{section:illumination} of the main paper, a ray that reaches the environment map is assigned a color taken as the average color over an axis-aligned rectangle in spherical coordinates, where the shape of the rectangle depends on the ray's direction and the material's roughness at the ray's origin. %The area and aspect ratio of the sample rectangle are adapted to each ray. 
+We modify the derivation of the area of the rectangle from GPU Gems~\cite{colbert2007gpu}. Let $N$ be the number of samples, $p(\omegai)$ be the probability density function of a given sample direction $\omegai$ for viewing direction $\omegao$, and let $H$ and $W$ be the height and width of the environment map (\ie its polar and azimuthal resolutions). The density $d(\omegai)$ of environment map pixels at a given direction must be inversely proportional to the Jacobian's determinant, $\sin\theta_i$, and it must also satisfy: 
+\begin{equation}
+    HW = \int_0^{2\pi}\int_0^\pi d(\omegai) \sin\theta_i d\theta_i d\phi_i,
+\end{equation}
+and therefore:
+\begin{equation}
+    d(\omegai) = \frac{HW}{2\pi^2\sin\theta_i}.
+\end{equation}
+
+The number of pixels per sample, which is the area of the rectangle, is then the total solid angle per sample, $Np(\omegai)$ multiplied by the number of pixels per solid angle:
+\begin{equation}
+    \Delta\theta\cdot \Delta\phi = \frac{Np(\omegai)}{d(\omegai)},
+\end{equation}
+where $\Delta\theta$ is the polar size of the rectangle, and $\Delta\phi$ is its azimuthal size, \ie the rectangle is $\Delta\theta\times\Delta\phi$, in equirectangular coordinates.
+%We multiply the pixels per a solid angle, $1/d(\omegai)$, by the solid angle per sample, $N p(\omegai, \omegao)$, to get the pixels per a sample, which is our desired rectangle size.
+
+As mentioned in Section~\ref{section:illumination} of the main paper, the aspect ratio of the rectangle is set to:
+\begin{equation}
+    \frac{\Delta\theta}{\Delta\phi} = \sin\theta_i,
+\end{equation}
+which yields:
+\begin{align}
+    \Delta\theta &= \sqrt{2\pi^2 \frac{N}{HW} p(\omegai)}\cdot \sin\theta_i ,\\
+    \Delta\phi &= \sqrt{2\pi^2 \frac{N}{HW} p(\omegai)}.
+\end{align}
+
+%The ratio of width to height based on the distortion of the projection can then be used to calculate the width and height of the rectangle corresponding to each sample.
+
+\section{BSDF Neural Network Parameterization} \label{appendix:parameterization}
+
+Once we have sampled the incoming light directions $\omegai$ and their respective values $L(\point, \omegai)$, we transform them into the local shading frame to calculate the value of the neural shading network $h$. We parameterize the neural network with 2 hidden layers of width 64 as $h(\point, \omegao, \omegai, \uvn)$, where $\point$ is the position, $\omegao, \omegai$ are the outgoing and incoming light directions, respectively, and $\uvn$ is the normal. However, rather than feeding $\omegao$ and $\omegai$ to the network directly, we follow the schema laid out by Rusinkiewicz~\cite{rusinkiewicz1998new} and parameterize the input using the halfway vector $\boldsymbol{\hat{h}}$ and difference vector $\boldsymbol{\hat{d}}$ within the local shading frame $F(\uvn)$, which takes the world space to a frame of reference in which the normal vector points upwards:
+\begin{align}
+    T&={[0, 0, 1]}^\top \times \uvn \\
+    F(\uvn) &= \begin{bmatrix}
+    T, & \uvn\times T, & \uvn
+    \end{bmatrix}^\top \\
+    \boldsymbol{\hat{h}} &= F(\uvn) \frac{\omegai+\omegao}{\|\omegai+\omegao\|_2} \\
+    \boldsymbol{\hat{d}} &= F(\boldsymbol{\hat{h}}) \omegai
+\end{align}
+where $\times$ is the cross product. Finally, we encode these two directions using spherical harmonics up to degree 4 (as done in Ref-NeRF~\cite{verbin2021ref} for encoding view directions), concatenate the feature vector $\feat$ from the field at point $\point$, and pass this as input to the network $h$. 
+
+
+
+
+
+\section{Optimization and Architecture}\label{appendix:optimization}
+
+To calculate the normal vectors of the density field, we apply a finite difference kernel, convolved with a $3\times 3$ Gaussian smoothing kernel with $\sigma=1$, then linearly interpolate between samples to get the resulting gradient in the 3D volume.
+We supervise our method using photometric loss, along with the orientation loss of Equation~\ref{eqn:normal_penalty}. Like TensoRF, we use a learning rate of $0.02$ for the rank $1$ and $2$ tensor components, and a learning rate of $10^{-3}$ for everything else. We use Adam~\cite{kingma2014adam} with $\beta_1=0.9,\beta_2=0.99, \varepsilon=10^{-15}$. %We decay the learning rate log-linearly in the same way as Ref-NeRF~\cite{verbin2021ref}.
+Similar to Ref-NeRF~\cite{verbin2021ref}, we use log-linear learning rate decay with a total decay of $d_w = 10^{-3}$ and a warmup of $N_w = 100$ steps and a decay multiplier of $m_w = 0.1$ over $N_T=3\cdot 10^4$ total iterations. This gives us the following formula for the learning rate multiplier for some iteration $i$:
+\begin{equation}
+    \left[m_w + (1-m_w) \sin\frac\pi2 \text{clip}\left(\frac{i}{N_w}, 0, 1\right)\right] e^{i/N_T}\log(d_w)
+\end{equation}
+
+We initialize the environment map to a constant value of $0.5$. 
+Finally, we upsample the resolution of TensoRF from $32^3$ up to $300^3$ cube-root-linearly at steps $500, 1000, 2000, 3000, 4000, 5500, 7000$, and don't shrink the volume to fit the model.
+
+To further reduce the variance of the estimated value of the rendering equation (see Equation~\ref{eqn:montecarlo}), we use quasi-random sampling sequences. Specifically, we use a Sobol sequence~\cite{sable1967} with Owens scrambling~\cite{owen1995randomly}, which gives the procedural sequence necessary for assigning an arbitrary number of secondary ray samples to each primary ray sample. We then apply Cranley-Patterson rotation~\cite{cranley1976randomization} to avoid needing to redraw samples.
+
+
+\section{Additional Results}
+\label{appendix:results}
+Tables 2-5 contain full per-scene metrics for our method as well as ablations and baselines. Visual comparisons are also provided in Figures 7-17.
+
+\begin{table*}[]
+\resizebox{\linewidth}{!}{
+\input{tables/PSNRs}
+}
+\small{$^1$ requires object masks during training. ~~ $^2$ view synthesis method, not inverse rendering. ~~ Red is best, followed by orange, then yellow. }
+\caption{\textbf{PSNR Results on the \emph{Shiny Blender} dataset from Ref-NeRF \cite{verbin2021ref} and \emph{Blender} dataset from NeRF \cite{mildenhall2021nerf}.}}
+\label{tab:psnrs}
+\end{table*}
+
+\begin{table*}[]
+\resizebox{\linewidth}{!}{
+\input{tables/SSIMs}
+}
+\small{$^1$ requires object masks during training. ~~ $^2$ view synthesis method, not inverse rendering.~~ Red is best, followed by orange, then yellow. }
+\caption{\textbf{SSIM Results on the \emph{Shiny Blender} dataset from Ref-NeRF \cite{verbin2021ref} and \emph{Blender} dataset from NeRF \cite{mildenhall2021nerf}.}}
+\label{tab:ssims}
+\end{table*}
+
+\begin{table*}[]
+\resizebox{\linewidth}{!}{
+\input{tables/LPIPs}
+}
+\small{$^1$ requires object masks during training. ~~ $^2$ view synthesis method, not inverse rendering. ~~Red is best, followed by orange, then yellow. }
+\caption{\textbf{LPIPS Results on the \emph{Shiny Blender} dataset from Ref-NeRF \cite{verbin2021ref} and \emph{Blender} dataset from NeRF \cite{mildenhall2021nerf}.}}
+\label{tab:lpips}
+\end{table*}
+
+\begin{table*}[]
+\resizebox{\linewidth}{!}{
+\input{tables/MAEs}
+}
+\small{$^1$ requires object masks during training. ~~ $^2$ view synthesis method, not inverse rendering. ~~Red is best, followed by orange, then yellow. }
+\caption{\textbf{MAE Results on the \emph{Shiny Blender} dataset from Ref-NeRF \cite{verbin2021ref} and \emph{Blender} dataset from NeRF \cite{mildenhall2021nerf}.}}
+\label{tab:maes}
+\end{table*}
+
+\plotscene{ball} 
+% See \cref{fig:ball} for the ball scene.
+
+% \plotsceneshort{car} 
+% See \cref{fig:car} for the car scene.
+
+% \plotscene{helmet} 
+% See \cref{fig:helmet} for the helmet scene.
+
+\plotscene{coffee}
+
+\plotscenetop{teapot} 
+%See \cref{fig:teapot} for the teapot scene.
+
+\plotscene{toaster} 
+%See \cref{fig:toaster} for the toaster scene.
+
+\plotsceneshort{materials} 
+%See \cref{fig:materials} for the materials scene.
+
+\plotscene{drums} 
+%See \cref{fig:drums} for the drums scene.
+
+\plotscene{ficus} 
+%See \cref{fig:ficus} for the ficus scene.
+
+\plotscenebottom{hotdog} 
+%See \cref{fig:hotdog} for the hotdog scene.
+
+\plotscene{mic} 
+%See \cref{fig:mic} for the mic scene.
+
+\plotship{ship}
+%See \cref{fig:ship} for the ship scene.
+
+\plotscene{lego} 
+%See \cref{fig:lego} for the ship scene.

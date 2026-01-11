@@ -1,0 +1,22 @@
+% DV abstract, March 6th 2025:
+% We present \longname{} (\acronym{}), a method for real-time 3D reconstruction. \acronym{} represents a scene as a large collection of overlapping 3D ellipsoids, each with constant volume density. Unlike prior work on 3D reconstruction, our representation can be efficiently rendered \emph{exactly} without any approximation error which may cause popping or aliasing. We do this by computing the two intersections of every camera ray with the ellipsoids it intersects, and accumulating the derivatives of the densities and colors along the ray. We combine our approach with ray tracing, which enables effects such as defocus blur and fish-eye camera distortion, while still allowing rendering at $\sim\!30$ frames per second at 720p on a single NVIDIA RTX4090. We show that our method is more accurate on the challenging large-scale scenes from the Zip-NeRF dataset, where it achieves state-of-the-art sharpness, even higher than Zip-NeRF.
+
+\begin{abstract}
+We present \longname{} (\acronym{}), a method for real-time 3D reconstruction.
+\acronym{} accurately blends an unlimited number of overlapping primitives together in 3D space, eliminating the popping artifacts that 3D Gaussian Splatting (3DGS) and other related methods exhibit.
+EVER represents a radiance field as a set of constant-density volumetric ellipsoids, which are raytraced by intersecting each primitive twice (once upon ray entrance and another on ray exit) and accumulating the derivatives of the densities and colors along the ray.
+Because EVER is built around ray tracing, it also enables effects such as defocus blur and fish-eye camera distortion, while still achieving frame rates of $\sim\!30$ FPS at 720p on an NVIDIA RTX4090. 
+We show that our method is more accurate on the challenging large-scale scenes from the Zip-NeRF dataset, where it achieves state of the art SSIM, even higher than Zip-NeRF.
+%As such, unlike 3DGS our formulation does not suffer from popping artifacts and view dependent density, but still achieves frame rates of $\sim\!30$ FPS at 720p on an NVIDIA RTX4090. 
+
+%, with none of the blending issues that 3DGS and follow-up work on view-consistent rendering suffer.
+% Our method achieves competitive results on the Mip-NeRF dataset and achieves SOTA results on the Zip-NeRF dataset among real-time methods.
+% Extensive experiments on various of scenes show that our approach produces renderings with higher fidelity than 3D Gaussian Splatting and comparable quality with SoTA NeRF-based approaches, while achieving framerates of around 30 FPS at 720p on an NVIDIA RTX4090. 
+\end{abstract}
+
+% Order of claims: 
+% 1. We introduce exact volume rendering for infinite overlapping primitives in real time
+% 2. We observe that this improves smooth textures on walls
+% 3. This results in better performance on larger scenes
+% 4. This is possible with our double intersection approach
+% 5. Which we combine with ray tracing for flexible rendering

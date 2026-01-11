@@ -1,0 +1,19 @@
+% Please add the following required packages to your document preamble:
+% \usepackage[table,xcdraw]{xcolor}
+% If you use beamer only pass "xcolor=table" option, i.e. \documentclass[xcolor=table]{beamer}
+% Please add the following required packages to your document preamble:
+% \usepackage[table,xcdraw]{xcolor}
+% If you use beamer only pass "xcolor=table" option, i.e. \documentclass[xcolor=table]{beamer}
+
+\begin{tabular}{l|rrrr}
+             & \multicolumn{1}{l}{PSNR $\uparrow$} & \multicolumn{1}{l}{SSIM $\uparrow$} & \multicolumn{1}{l}{LPIPS $\downarrow$} & \multicolumn{1}{l}{$\text{MAE}^\circ \downarrow$} \\ \hline
+%PhySG$^1$                     & 26.21                               & .921                                & .121                                   & 8.46                                              \\
+%NVDiffRec$^1$                 & 29.90                               & .945                                & .114                                   & 6.08                                              \\
+%NVDiffRecMC$^1$               & 28.20                               & .902                                & .175                                   & 4.93                                              \\
+Ours, no integral image & 32.11                               & 0.950                                & 0.077                                   & 2.51                      \\
+Ours, single bounce       & 32.86                               & 0.957                                & 0.067                                   & 2.60                                              \\
+
+Ours, no $L_d$            & 31.69                               & 0.888                                & 0.242                                   & 4.37                                              \\
+Ours, no smoothing        & 31.20                               & 0.942                                & 0.092                                   & 5.01                                              \\
+Ours                & \textbf{33.24}                               & \textbf{0.960}                                & \textbf{0.062}                                   & \textbf{2.41}
+\end{tabular}

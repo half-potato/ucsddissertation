@@ -1,0 +1,133 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+\usepackage[rebuttal]{cvpr}
+
+% Include other packages here, before hyperref.
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage[table,xcdraw]{xcolor}
+
+% If you comment hyperref and then uncomment it, you should delete
+% egpaper.aux before re-running latex.  (Or just hit 'q' on the first latex
+% run, let it finish, and you should be clear).
+\usepackage[pagebackref,breaklinks,colorlinks,bookmarks=false]{hyperref}
+
+\definecolor{turquoise}{cmyk}{0.65,0,0.1,0.3}
+\definecolor{purple}{rgb}{0.65,0,0.65}
+\definecolor{darkgreen}{rgb}{0, 0.5, 0}
+\definecolor{orange}{rgb}{0.8, 0.6, 0.2}
+\definecolor{darkred}{rgb}{0.6, 0.1, 0.05}
+\definecolor{blue}{rgb}{0.0, 0.0, 1.0}
+\definecolor{red}{rgb}{1.0, 0.0, 0.0}
+\definecolor{green}{rgb}{0.2, 0.6, 0.0}
+\definecolor{lightgray}{rgb}{0.7, 0.7, .7}
+\definecolor{pink}{rgb}{1, 0, 1}
+\definecolor{greyblue}{rgb}{0.25, 0.25, 1}
+
+% Support for easy cross-referencing
+\usepackage[capitalize]{cleveref}
+\crefname{section}{Sec.}{Secs.}
+\Crefname{section}{Section}{Sections}
+\Crefname{table}{Table}{Tables}
+\crefname{table}{Tab.}{Tabs.}
+
+\def\thetable{R\arabic{table}}
+
+% If you wish to avoid re-using figure, table, and equation numbers from
+% the main paper, please uncomment the following and change the numbers
+% appropriately.
+%\setcounter{figure}{2}
+%\setcounter{table}{1}
+%\setcounter{equation}{2}
+
+% If you wish to avoid re-using reference numbers from the main paper,
+% please uncomment the following and change the counter for `enumiv' to
+% the number of references you have in the main paper (here, 6).
+%\let\oldthebibliography=\thebibliography
+%\let\oldendthebibliography=\endthebibliography
+%\renewenvironment{thebibliography}[1]{%
+%     \oldthebibliography{#1}%
+%     \setcounter{enumiv}{6}%
+%}{\oldendthebibliography}
+
+
+%%%%%%%%% PAPER ID  - PLEASE UPDATE
+\def\cvprPaperID{3364} % *** Enter the CVPR Paper ID here
+\def\confName{ICCV}
+\def\confYear{2023}
+
+\newcommand{\Q}[2]{\medskip\noindent\bfseries \textcolor{#1}{#2}}
+%\newcommand{\A}{\par\noindent\textbf{A:} \normalfont}
+\newcommand{\A}{\normalfont\noindent}
+
+\newcommand{\sfk}{\textcolor{blue}{SFK:} \normalfont}
+\newcommand{\dv}{\textcolor{magenta}{DV:} \normalfont}
+
+\begin{document}
+
+%%%%%%%%% TITLE - PLEASE UPDATE
+\title{Neural Microfacet Fields for Inverse Rendering}  % **** Enter the paper title here
+
+\maketitle
+\thispagestyle{empty}
+\appendix
+
+%%%%%%%%% BODY TEXT - ENTER YOUR RESPONSE BELOW
+%\section{Q\&{}A}
+
+Thank you for spending your time reviewing; we appreciate your feedback.
+
+\Q{blue}{R2}, \textcolor{red}{R3} I would have appreciated more numerical evidence demonstrating successful disentanglement. 
+
+\A To help demonstrate successful disentanglement, we quantitatively evaluate our method as in NeRFactor~[43]. Since our method is specifically designed to handle more specular objects, we modify the Shiny Blender dataset from Ref-NeRF~[35] by rendering the images in HDR under both the original lighting and an unseen lighting condition. We then train each method on each of the scenes with original lighting, then render the predicted geometry and materials using the unseen lighting condition. We find an absolute brightness scaling factor by minimizing the mean squared error w.r.t.\ the actual image. The scaled image is then evaluated against the ground truth relit image using the standard image metrics: PSNR, SSIM, and LPIPS. 
+
+Results are presented in Table~\ref{tab:relighting}. The results show that our method is able to relight shiny objects with significantly increased accuracy when compared to NVDiffRec and NVDiffRecMC, both of which are state of the art methods for inverse rendering.
+
+\Q{red}{R3}, \textcolor{green}{R4} Results on a couple (or at least one) real scene would have been a much stronger result.
+
+\A Inverse rendering is currently in the very early stages of research, and most methods, including ours, do not work well on real scenes (and even some synthetic scenes). This is a first step towards more successful inverse rendering methods, and we agree that handling real world data is an important direction for future research.
+
+
+\Q{red}{R3} It seems that these two representations do not really talk to each other?
+
+\A They do talk to each other. At every training iteration, we compute new spherical harmonics coefficients for diffuse shading by integrating the pixel-based high-resolution environment map against the spherical harmonic basis, and then we multiply those with the precomputed coefficients of a cosine lobe (see lines 431-460 in the submission, following~[29]). We do not store or optimize a separate diffuse environment map. We will improve the wording to ensure that this is clearer in the paper.
+
+\Q{blue}{R2} What about using traditional BRDFs? What about parameterizing the NDF using an MLP? The current ablation study does not investigate the effect of the proposed neural microfacet model itself.
+
+%\A Exploring different design choices for inverse rendering would make for interesting future work, but is not the focus of this submission. Our results show that our proposed representation and optimization strategy improves upon prior work, but we do not claim that each of our design choices is optimal. We note that all existing models for BRDFs, including ``traditional'' ones (like Disney BRDF), involve many design choices, including hacks to make their parameters interpretable to artists. 
+%The motivation behind our design is: the BRDF needs to be able to approach a Dirac delta function for shiny objects, and it needs to support an importance sampling scheme for computational efficiency; the optimal BRDF design is an open problem.
+
+\A We have a closed form for the normal distribution function (NDF) for most materials that supports an importance sampling scheme for computational efficiency, so we did not use an MLP.
+The reason we do not do the same for the $F\cdot G$ terms of the BRDF is because this is not the case for those. Many materials, including those in the materials scene, are not covered by traditional BRDF representations. As a result, we found that using a traditional BRDF results in decent performance on some scenes, but poor performance on others. 
+Overall, the PSNR performance using a traditional BRDF is 27.29 dB on Blender and 30.04 dB on Shiny Blender, compared to 30.73 dB and 33.24 dB respectively using a neural component in the BRDF.
+We will include a full ablation in the paper.
+
+\Q{green}{R4} Was any further tone mapping considered?
+
+\A We decided to use a standard linear to sRGB curve for all of our experiments. This simplifies our method and assumes no prior knowledge of the exact tone map applied by the camera, but still works in practice. However, using other fixed or optimizable tone mapping operations to our method could be interesting to explore. We will also improve the wording on how tone mapping is done. The environment map is indeed linear and between 0 and infinity. 
+
+\Q{red}{R3} Which BRDFs are used in the two synthetic scenes?
+
+\A There are 14 synthetic scenes: the Shiny Blender dataset is a collection of 6 scenes, and the Blender dataset is collections of 8 scenes. Details for these scenes can be found in the supplementary material. The BRDF is spatially varying and is learned for each of the scenes.
+
+\Q{red}{R3} Why are there no qualitative results on PhySG.
+
+\A We do not compare to PhySG because it only supports inverse rendering with a single material per scene. Instead, we compare to NVDiffrecMC, which is a stronger baseline than PhySG.
+
+\Q{red}{R3} What is the Gaussian derivative filter's size?
+
+\A The standard deviation of the Gaussian is set to 0.4\% of the grid resolution (kernel size up to $3\times 3$). This ensures that the normals do not significantly change when the grid is upscaled.
+
+
+\begin{table}[t]
+\resizebox{\linewidth}{!}{
+\input{tables/relighting}
+}
+\small{$^1$ requires object masks during training. ~~Red is best, followed by orange, then yellow. }
+\caption{\textbf{Relighting on the \emph{Shiny Blender} dataset from Ref-NeRF~[35].} %We compute PSNR, SSIM, and LPIPS on the novel view synthesis task for new lighting conditions. Our method outperforms all prior methods.
+}
+\label{tab:relighting}
+\end{table}
+
+\end{document}

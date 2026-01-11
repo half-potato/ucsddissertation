@@ -1,0 +1,58 @@
+
+
+\section{Preliminaries}
+
+Our method combines aspects of \emph{volumetric} and \emph{surface-based} rendering; we begin with a brief introduction to each before describing our method in Section~\ref{sec:method}.
+
+\subsection{Volume Rendering}
+
+The core idea in emission-absorption volume rendering is that light accumulates along rays, with ``particles'' along the ray both emitting and absorbing light. The color measured by a camera pixel corresponding to a ray with origin $\point_c$ and direction $-\omegao$ is:
+%Mathematically, volume rendering can be described as follows:
+\begin{align} \label{eqn:volrendering2}
+    % T(t) &= \exp\left( -\int_0^{t}\density(\point_c - t'\omegao)dt' \right) \\
+    % L(\point_c, \omegao) &= \int_0^\infty T(t) \density(\point_c - t\omegao)L_o(\point_c-t\omegao, \omegao) dt,
+    L(\point_c, \omegao) &= \int_0^\infty T(t) \density(\ray(t))L_o(\ray(t), \omegao) dt, \\
+    \text{where}\;\; T(t) &= \exp\left( -\int_0^{t}\density(\ray(t'))dt' \right),    
+    % T(t') &= \exp\left( -\int_0^{t'}\sigma_t(\point_c - t'\omegao)dt' \right) \\
+\end{align}
+where $\ray(t)=\point_c - t\omegao$ is a camera ray, $\density(\point)$ is the density at point $\point$ in the volume, $T$ denotes transmittance along the ray, and $L_o$ is the outgoing radiance. This formula is often approximated numerically using quadrature, following~\cite{max1995}:
+% \begin{align}
+% \label{eqn:volrenderingquadrature}
+% % T_i &= \exp\left(-\sum_{j=0}^{i-1}\sigma_j\delta_j \right) \\
+% % L(\point_c, \omegao) &= \sum_{i=0}^{N-1} T_i \left(1-\exp(-\sigma_i\delta_i)\right) \textbf{c}_i
+% T_j &= \exp\left(-\sum_{k=0}^{j-1}\sigma_k\delta_k \right) \\
+% % w_j &= T_j \left(1-\exp(-\sigma_j\delta_j)\right) \\
+% L(\point_c, \omegao) &= \sum_{j=0}^{N-1} T_j \left(1-\exp(-\sigma_j\delta_j)\right) \textbf{c}_j
+% \end{align}
+\begin{align}
+L(\point_c, \omegao) &\approx \sum_{j=0}^{N-1} w_j L_o(\ray(t_j), \omegao), \\
+\label{eqn:volrenderingquadrature}
+\text{where}\;\; w_j &= T_j \big(1-\exp(-\sigma(\ray(t_j))(t_{j+1}-t_j))\big), \\
+\text{and}\;\; T_j &= \exp\left(-\sum_{k=0}^{j-1}\sigma(\ray(t_k))(t_{k+1}-t_k) \right).
+% , ~~~ \delta_k = t_{k+1}-t_k,\\
+% w_j &= T_j \left(1-\exp(-\sigma_j\delta_j)\right) \\
+% L(\point_c, \omegao) &= \sum_{j=0}^{N-1} T_j \big(1-e^{-\sigma(\ray(t_j))\delta_j}\big) L_o(\ray(t_j), \omegao),
+\end{align}
+%using the same notation as in the continuous formula.
+% where sample $j$ along the ray has optical density $\sigma_j$ and outgoing radiance $\textbf{c}_j$, and $\delta_j$ denotes the distance to the next sample. 
+In this volume rendering paradigm, multiple 3D points can contribute to the color of a ray, with nearer and denser points contributing most. 
+
+
+
+
+\subsection{Surface Rendering}
+
+In surface rendering, and assuming fully-opaque surfaces, the color of a ray is determined solely by the light reflected by the first surface it encounters. Consider that the ray $\ray$ from camera position $\point_c$ in direction $-\omegao$ intersects its first surface at a 3D position $\point$. The ray color is then: 
+\begin{equation}
+    \label{eqn:rendering}
+    L(\point_c, \omegao) = \int_{\mathbb{S}^2} f(\point, \omegao, \omegai)L_i(\point, \omegai) (\uvn(\point)\cdot\omegai)^+ d\omegai,
+\end{equation}
+\begin{equation}
+    L(\point_c, \omegao) \approx \int_{\mathbb{S}^2} f(\point, \omegao, \omegai)d\omegai \int_{\mathbb{S}^2}L_i(\point, \omegai) (\uvn(\point)\cdot\omegai)^+ d\omegai
+\end{equation}
+where $\omegai$ is the direction of incident light, $\uvn(\point)$ is the surface normal at $\point$, $f$ is the \bsdf{} describing the material of the surface at $\point$, $L_i$ is the incident radiance, and $(\uvn(\point)\cdot\omegai)^+$ is a truncated cosine lobe (\ie its negative values are clipped to zero) facing outward from the surface. Note that this equation is recursive: $L_i$ inside the integral may be the outgoing radiance $L_o$ coming from a different scene point.
+%that came directly from a source in the environment or bounced off another object.
+The integral in Equation~\ref{eqn:rendering} is also typically approximated by discrete (and often random) sampling, and is the subject of a rich body of work \cite{cook1982reflectance, veach1998robust}.
+
+
+

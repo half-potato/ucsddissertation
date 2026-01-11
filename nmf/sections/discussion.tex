@@ -1,0 +1,20 @@
+
+
+\section{Discussion and Limitations}
+
+We introduced a novel and successful approach for the task of inverse rendering, using calibrated images alone to decompose a scene into its geometry, far-field illumination, and material properties. Our approach uses a combination of volumetric and surface-based rendering, in which we endow each point in space with both a density and a local microsurface, so that it can both occlude and reflect light from its environment. %Our approach combines the continuity of volume rendering, whose gradients are beneficial for optimization, with the Monte Carlo ray bouncing necessary to recover illumination. 
+We verified experimentally that our method, which enjoys both the optimization landscape of volume rendering, as well as the richness and efficiency of surface-based Monte Carlo rendering, provides superior results relative to prior work. %We represent (1) geometry in the form of a density field, with normal vectors derived from that density field, (2) materials as a neural specular lobe, a diffuse albedo field, and a roughness field, and (3) illumination as an equirectangular HDR environment map.
+
+However, our method is not without limitations. 
+First, although it can handle non-convex geometry, it assumes far field illumination and thus performs poorly when this assumption is not satisfied. This issue is most clear in the \emph{coffee} scene in the Shiny Blender dataset, which has near-field light sources. It also does not handle interreflections very well, since the number of secondary bounces is limited, and due to our acceleration scheme of often directly querying the environment map, as explained in Section~\ref{section:rendering}.
+Our model also does not handle refractive media,
+%It also assumes reflection rather than refraction and thus fails to model refractive media,
+which is most clear in the \emph{drums} and \emph{ship} scenes in the Blender dataset.
+Our diffuse lighting model also assumes far field illumination, and thus fails to fully isolate shadows from the albedo, most obvious in the \emph{lego} scene in the Blender dataset. These scenes are visualized in Appendix~\ref{appendix:results}.
+Another limitation of our model's \bsdf{} parameterization is that it struggles to represent anisotropic materials. 
+Finally, our method exhibits some speckle noise in its renderings, particularly near bright spots, which may be alleviated by using a denoiser as was used in~\cite{hasselgren2022nvdiffrecmc}.
+We believe these limitations would make for interesting future work, as well as applying our method to other field representations and larger scenes captured in the wild.
+% , and multiple illumination reconstructions.
+
+%Because the inverse rendering problem is underdetermined, our method must be guided by priors that bias it towards opaque surfaces, and nonetheless is susceptible to some artifacts. In particular, our method struggles with translucent materials like the drumheads in the \emph{drums} scene, and can only recover detailed illumination in the presence of specular materials. Finally, our method requires about 24GB of GPU memory, and about 3 hours to train on each scene, on a single GPU.
+%Some of these limitations are inherent to the task of inverse rendering, but others may be improved by advances in 3D field representation and development of priors specialized to different types of scenes. 
